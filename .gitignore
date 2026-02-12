@@ -4,6 +4,7 @@
 # 원본 데이터 (용량 큼)
 data/raw/*.csv
 !data/raw/holidays.csv
+!data/raw/weather_hourly.csv
 
 # Python
 __pycache__/
