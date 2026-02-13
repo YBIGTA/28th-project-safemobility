@@ -23,3 +23,5 @@ Thumbs.db
 
 # Jupyter
 .ipynb_checkpoints/
+*_executed.ipynb
+notebooks/*_outputs/
