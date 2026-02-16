@@ -47,15 +47,18 @@ $$\hat{y}_{t} = f_{RF} ( X_{context}, X_{history} )$$
 
 ### 4.2. 처리 프로세스 (Pipeline)
 1.  **Context Feature 생성**: 입력된 시간에서 `hour`, `dow`(요일), `is_red`(공휴일) 추출.
-2.  **History Feature 매핑**: `bus_standard_patterns_jan2026.csv`에서 해당 정류장/시간/요일의 평균값을 조회하여 `lag1`, `lag7` 등 4개 변수에 할당.
-3.  **Model Prediction**: 모델을 통해 **'시간 단위(Hour)'** 예측값 생성.
-4.  **Minute Interpolation**: 분 단위 입력을 처리하기 위해 선형 보간법 적용.
+2.  **History Feature 매핑**: `bus_standard_patterns_jan2026.csv`에서 해당 정류장/시간/요일의 평균값을 조회하여 Lag 변수에 할당.
+3.  **Hourly Prediction**: 모델을 통해 시간 단위 예측값 생성.
+4.  **Minute Interpolation (중요 ⭐)**:
+    * 모델의 예측값은 해당 시간대의 **최대 혼잡도(Max)**를 의미합니다.
+    * 통계적 대표성을 위해 **매 시 30분(Center Point)**을 해당 혼잡도의 기준점으로 설정합니다.
+    * 분 단위 입력에 따라 **이전 시간대 30분** 혹은 **다음 시간대 30분** 사이를 보간하여 연결합니다.
 
 ---
 
 ## 5. Python 구현 코드 (Copy & Paste)
 
-서버에 이 클래스를 그대로 이식하여 사용하십시오.
+서버에 이 클래스를 그대로 이식하여 사용하십시오. **(중심점 보간법 적용됨)**
 
 ```python
 import pandas as pd
@@ -105,22 +108,40 @@ class BusCongestionPredictor:
 
     def predict(self, stop_id, target_time):
         """
-        [Main API] 분 단위 보간법이 적용된 최종 예측 함수
+        [Main API] 중심점 보간법(Center-Point Interpolation)이 적용된 최종 함수
+        가정: 모델 예측값(Max Load)은 해당 시간대의 중심인 '30분'에 발생한다.
         """
-        # 1. 현재 시간대(H) 예측
-        pred_now = self._predict_hourly(stop_id, target_time)
+        minute = target_time.minute
         
-        # 2. 다음 시간대(H+1) 예측
-        next_time = target_time + pd.Timedelta(hours=1)
-        pred_next = self._predict_hourly(stop_id, next_time)
-        
-        # 3. 선형 보간 (Linear Interpolation)
-        # 8시 30분이면 8시값과 9시값의 딱 중간값 도출
-        weight = target_time.minute / 60.0
-        final_pred = pred_now + (pred_next - pred_now) * weight
-        
+        # Case 1: 0분 ~ 29분 (이전 시간대 30분 ~ 현재 시간대 30분 사이)
+        if minute < 30:
+            # 이전 시간(H-1) 예측값 (Anchor: H-1시 30분)
+            prev_time = target_time - pd.Timedelta(hours=1)
+            p_prev = self._predict_hourly(stop_id, prev_time)
+            
+            # 현재 시간(H) 예측값 (Anchor: H시 30분)
+            p_curr = self._predict_hourly(stop_id, target_time)
+            
+            # 가중치 계산 (총 60분 간격)
+            # 예: 15분 -> (15 + 30) / 60 = 0.75 지점
+            weight = (minute + 30) / 60.0
+            final_pred = p_prev + (p_curr - p_prev) * weight
+
+        # Case 2: 30분 ~ 59분 (현재 시간대 30분 ~ 다음 시간대 30분 사이)
+        else:
+            # 현재 시간(H) 예측값 (Anchor: H시 30분)
+            p_curr = self._predict_hourly(stop_id, target_time)
+            
+            # 다음 시간(H+1) 예측값 (Anchor: H+1시 30분)
+            next_time = target_time + pd.Timedelta(hours=1)
+            p_next = self._predict_hourly(stop_id, next_time)
+            
+            # 가중치 계산
+            # 예: 45분 -> (45 - 30) / 60 = 0.25 지점
+            weight = (minute - 30) / 60.0
+            final_pred = p_curr + (p_next - p_curr) * weight
+            
         return round(final_pred, 1)
-```
 
 ---
 
