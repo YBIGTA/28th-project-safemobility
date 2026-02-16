@@ -142,6 +142,7 @@ class BusCongestionPredictor:
             final_pred = p_curr + (p_next - p_curr) * weight
             
         return round(final_pred, 1)
+```
 
 ---
 
@@ -156,7 +157,7 @@ class BusCongestionPredictor:
 | **여유**  | **0 ~ 20** | "앉아서 갈 수 있어요!" |
 | **보통** | **21 ~ 35** | "빈 자리가 조금 있어요(서서 갈 확률 높음)" |
 | **혼잡**  | **36 ~ 45** | "서서 가야 해요." |
-| **매우 혼잡** ?? | **46~** | "꽉 찼습니다. 다음 차 추천!!" |
+| **매우 혼잡**  | **46~** | "꽉 찼습니다. 다음 차 추천!!" |
 
 ### 기타 확률들
 
