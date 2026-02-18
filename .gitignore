@@ -1,0 +1,27 @@
+# 환경 변수 (API 키)
+.env
+
+# 원본 데이터 (용량 큼)
+data/raw/*.csv
+!data/raw/holidays.csv
+!data/raw/weather_hourly.csv
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Jupyter
+.ipynb_checkpoints/
+*_executed.ipynb
+notebooks/*_outputs/
