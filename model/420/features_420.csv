@@ -1,0 +1,9 @@
+﻿feature
+정류장순번
+hour
+dow
+is_red
+lag1
+lag7
+rolling_mean_7d
+station_hour_mean
