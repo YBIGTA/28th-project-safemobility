@@ -5,8 +5,23 @@ const cache: Record<string, PredictionData> = {};
 async function loadPredictions(route: Route): Promise<PredictionData> {
   if (cache[route]) return cache[route];
   const base = import.meta.env.BASE_URL;
-  const res = await fetch(`${base}data/predictions_${route}.json`);
-  const data: PredictionData = await res.json();
+  const res = await fetch(`${base}data/pred_table_${route}.csv`);
+  const text = await res.text();
+
+  // CSV 형식: 정류장순번,dow,hour,pred
+  const data: PredictionData = {};
+  const lines = text.trim().split('\n').slice(1); // 헤더 제외
+  for (const line of lines) {
+    const [stopStr, dowStr, hourStr, predStr] = line.split(',');
+    const stopId = stopStr.trim();
+    const hour = hourStr.trim();
+    const dow = dowStr.trim();
+    const pred = parseFloat(predStr.trim());
+    if (!data[stopId]) data[stopId] = {};
+    if (!data[stopId][hour]) data[stopId][hour] = {};
+    data[stopId][hour][dow] = pred;
+  }
+
   cache[route] = data;
   return data;
 }
